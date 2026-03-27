@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoxAgent — Dashboard</title>
+  <meta name="description" content="VoxAgent AI voice-agent SaaS dashboard" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="shell">
+
+  <!-- ╔══════════════════════════════╗
+       ║         SIDEBAR              ║
+       ╚══════════════════════════════╝ -->
+  <aside id="sidebar">
+
+    <!-- brand -->
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </div>
+      <div class="brand-name"><b>Vox</b>Agent</div>
+    </div>
+
+    <!-- nav -->
+    <div class="nav-group">
+      <div class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" data-view="agents">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+        Agents
+      </div>
+      <div class="nav-item" data-view="knowledge">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Knowledge Base
+      </div>
+      <div class="nav-item" data-view="callhistory">
+        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.58 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Call History
+      </div>
+      <div class="nav-item" data-view="leads">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Leads
+      </div>
+      <div class="nav-item" data-view="analytics">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6"  y1="20" x2="6"  y2="14"/></svg>
+        Analytics
+      </div>
+      <div class="nav-item" data-view="integrations">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Integrations
+      </div>
+    </div>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="nav-group" style="padding-bottom:4px">
+      <div class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </div>
+    </div>
+
+    <div class="sidebar-bot">
+      <button class="btn-create-agent" id="btn-create-agent">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Create Agent
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ╔═══════════════════════════════════╗
+       ║           WORKSPACE               ║
+       ╚═══════════════════════════════════╝ -->
+  <div id="workspace">
+
+    <!-- HEADER -->
+    <header id="header">
+      <div id="header-title">Dashboard</div>
+
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="global-search" type="text" placeholder="Search call logs or contacts…" autocomplete="off"/>
+      </div>
+
+      <button class="header-icon-btn" title="Notifications">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+
+      <div class="avatar">J</div>
+      <div class="header-username">Johnattan</div>
+    </header>
+
+    <!-- MAIN SCROLL -->
+    <main id="main">
+
+      <!-- ROW 1: METRICS -->
+      <div class="metrics-row">
+
+        <div class="metric-card">
+          <div class="arrow">→</div>
+          <div class="metric-number" id="m-total">—</div>
+          <div class="metric-label">
+            Total Calls
+            <span class="metric-info" title="All-time total calls">i</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="arrow">→</div>
+          <div class="metric-number" id="m-today">—</div>
+          <div class="metric-label">
+            Calls Today
+            <span class="metric-info" title="Calls placed today (UTC)">i</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="arrow">→</div>
+          <div class="metric-number" id="m-avg">—</div>
+          <div class="metric-label">
+            Avg Call Duration
+            <span class="metric-info" title="Average duration of all calls">i</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="arrow">→</div>
+          <div class="metric-number" id="m-rooms">0</div>
+          <div class="metric-label">
+            Active Rooms
+            <span class="metric-info" title="Currently active LiveKit rooms">i</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="arrow">→</div>
+          <div class="metric-number" id="m-mins">—</div>
+          <div class="metric-label">
+            Total Call Minutes
+            <span class="metric-info" title="Sum of all call durations in minutes">i</span>
+          </div>
+        </div>
+
+      </div><!-- /metrics-row -->
+
+      <!-- ROW 2: Calls Per Day (left) + Knowledge Base (right) -->
+      <div class="mid-row">
+
+        <!-- Calls Per Day chart -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Calls Per Day</div>
+            <button class="card-action" onclick="loadDashboard()">↻ Refresh</button>
+          </div>
+          <div class="chart-bar">
+            <canvas id="barChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Knowledge Base panel -->
+        <div class="kb-card">
+          <div class="card-head" style="margin-bottom:12px">
+            <div class="card-title">Knowledge Base</div>
+          </div>
+
+          <input type="file" id="kb-file-input" accept=".pdf,.txt,.md" />
+          <button class="btn-upload" id="btn-upload">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Upload Document
+          </button>
+
+          <div class="progress-wrap" id="progress-wrap">
+            <div class="progress-bar" id="progress-bar"></div>
+          </div>
+
+          <div id="kb-list">
+            <div class="kb-empty"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+      </div><!-- /mid-row -->
+
+      <!-- ROW 3: Recent Calls line chart -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Recent Calls</div>
+          <div class="legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#3b82f6"></div>
+              Completed Calls
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#ef4444"></div>
+              Dropped Calls
+            </div>
+          </div>
+        </div>
+        <div class="chart-line">
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- ROW 4: Recent Calls table -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Recent Calls</div>
+          <span class="link-all" onclick="setNav('callhistory')">View All →</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Call ID</th>
+                <th>Status</th>
+                <th>Agent</th>
+                <th>Duration</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="calls-tbody">
+              <tr><td colspan="5" class="td-empty"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main><!-- /main -->
+  </div><!-- /workspace -->
+
+</div><!-- /shell -->
+
+<!-- TOASTS -->
+<div id="toasts"></div>
+
+<!-- CHART.JS + APP LOGIC -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

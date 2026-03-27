@@ -1,0 +1,20 @@
+# System files
+.DS_Store
+*.log
+*.rdb
+__pycache__/
+.vscode/
+.vscode/settings.json
+
+# Python
+venv/
+*.pyc
+
+# Environment
+.env
+.env.local
+
+# Data
+data/
+chroma_db/
+smoke_test_results.json

@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoxAgent — Dashboard</title>
+  <meta name="description" content="VoxAgent AI voice-agent platform dashboard — manage calls, knowledge base, and analytics." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #151820;
+      --surface2:  #1c2030;
+      --border:    #252a38;
+      --accent:    #3d6eff;
+      --accent-hi: #5f88ff;
+      --accent-glow: rgba(61,110,255,.25);
+      --text:      #e4e8f0;
+      --text-muted:#8891aa;
+      --text-dim:  #555e75;
+      --green:     #23c882;
+      --red:       #ff445a;
+      --orange:    #ff9c41;
+      --yellow:    #ffd166;
+      --radius:    10px;
+      --sidebar-w: 224px;
+      --header-h:  60px;
+      --transition: .18s ease;
+    }
+    html { font-size: 14px; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ===== SIDEBAR ===== */
+    #sidebar {
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0;
+      height: 100vh;
+      z-index: 100;
+      transition: transform var(--transition);
+    }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hi));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+    .brand-name { font-size: 1.1rem; font-weight: 700; letter-spacing: -.3px; }
+    .brand-name span { color: var(--accent-hi); }
+
+    .sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+    .nav-label {
+      font-size: .7rem; font-weight: 600; letter-spacing: .08em;
+      color: var(--text-dim); text-transform: uppercase;
+      padding: 8px 8px 4px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: .9rem; font-weight: 500;
+      transition: background var(--transition), color var(--transition);
+      margin-bottom: 1px;
+      user-select: none;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active {
+      background: rgba(61,110,255,.15);
+      color: var(--accent-hi);
+    }
+    .nav-item .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--accent);
+      color: #fff;
+      font-size: .65rem; font-weight: 700;
+      padding: 2px 6px; border-radius: 100px;
+    }
+
+    .sidebar-footer {
+      padding: 14px 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ===== TOPBAR ===== */
+    #topbar {
+      position: fixed;
+      top: 0; left: var(--sidebar-w);
+      right: 0; height: var(--header-h);
+      background: rgba(13,15,20,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 24px;
+      gap: 14px;
+      z-index: 90;
+    }
+    #page-title { font-size: 1rem; font-weight: 600; flex: 1; }
+    .topbar-search {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      width: 240px;
+    }
+    .topbar-search input {
+      background: none; border: none; outline: none;
+      color: var(--text); font-family: inherit; font-size: .85rem;
+      width: 100%;
+    }
+    .topbar-search input::placeholder { color: var(--text-dim); }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, #3d6eff, #a020f0);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .8rem;
+    }
+
+    /* ===== MAIN ===== */
+    #main {
+      margin-left: var(--sidebar-w);
+      margin-top: var(--header-h);
+      flex: 1;
+      padding: 24px 28px;
+      min-height: calc(100vh - var(--header-h));
+    }
+
+    /* ===== PAGES ===== */
+    .page { display: none; animation: fadeIn .25s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ===== CARDS ===== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-hi));
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+    .stat-card:hover::before { opacity: 1; }
+    .stat-label { font-size: .75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+    .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .stat-sub { font-size: .75rem; color: var(--text-dim); margin-top: 6px; }
+    .stat-icon {
+      position: absolute; top: 16px; right: 16px;
+      font-size: 1.5rem; opacity: .15;
+    }
+
+    /* ===== CHART CARD ===== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .card-title { font-size: .95rem; font-weight: 600; }
+    .card-actions { display: flex; gap: 8px; }
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-muted); border-radius: 6px;
+      padding: 5px 12px; font-family: inherit; font-size: .8rem;
+      cursor: pointer; transition: all var(--transition);
+    }
+    .btn-ghost:hover { border-color: var(--accent-hi); color: var(--accent-hi); }
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* ===== BUTTON ===== */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-hi));
+      color: #fff; border: none; border-radius: 8px;
+      padding: 9px 18px; font-family: inherit; font-size: .85rem; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .btn-primary:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 24px var(--accent-glow); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-danger {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-dim); border-radius: 6px;
+      padding: 5px 10px; font-family: inherit; font-size: .8rem;
+      cursor: pointer; transition: all var(--transition);
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-danger:hover { border-color: var(--red); color: var(--red); background: rgba(255,68,90,.08); }
+
+    /* ===== TABLE ===== */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left; font-size: .7rem; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+    }
+    tbody tr {
+      border-bottom: 1px solid rgba(37,42,56,.6);
+      transition: background var(--transition);
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    td { padding: 13px 14px; font-size: .85rem; color: var(--text-muted); }
+    td:first-child { color: var(--text); font-family: monospace; font-size: .8rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 100px;
+      font-size: .72rem; font-weight: 600;
+    }
+    .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge-green { background: rgba(35,200,130,.12); color: var(--green); }
+    .badge-red   { background: rgba(255,68,90,.12);  color: var(--red); }
+    .badge-orange{ background: rgba(255,156,65,.12); color: var(--orange); }
+
+    /* ===== KNOWLEDGE BASE ===== */
+    .kb-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 36px;
+      text-align: center;
+      margin-bottom: 20px;
+      transition: border-color var(--transition), background var(--transition);
+      cursor: pointer;
+    }
+    .kb-upload-area:hover, .kb-upload-area.dragover {
+      border-color: var(--accent);
+      background: rgba(61,110,255,.05);
+    }
+    .kb-upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .kb-upload-text { color: var(--text-muted); font-size: .9rem; }
+    .kb-upload-text strong { color: var(--accent-hi); }
+    #kb-file-input { display: none; }
+
+    .progress-bar-wrap {
+      background: var(--surface2);
+      border-radius: 4px; height: 6px;
+      overflow: hidden; margin: 10px 0;
+      display: none;
+    }
+    .progress-bar {
+      height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-hi));
+      width: 0%; transition: width .3s ease;
+      border-radius: 4px;
+    }
+
+    .doc-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      transition: border-color var(--transition);
+    }
+    .doc-item:hover { border-color: var(--border); }
+    .doc-icon {
+      width: 38px; height: 38px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; flex-shrink: 0;
+    }
+    .doc-icon.pdf { background: rgba(255,68,90,.12); }
+    .doc-icon.txt { background: rgba(61,110,255,.12); }
+    .doc-icon.md  { background: rgba(35,200,130,.12); }
+    .doc-icon.default { background: rgba(150,150,150,.12); }
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name { font-weight: 500; color: var(--text); font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-meta { font-size: .75rem; color: var(--text-dim); margin-top: 2px; }
+
+    /* ===== CALL HISTORY ===== */
+    .filter-bar {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .filter-bar input {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: inherit;
+      font-size: .85rem; padding: 8px 14px; flex: 1; min-width: 180px;
+      outline: none; transition: border-color var(--transition);
+    }
+    .filter-bar input:focus { border-color: var(--accent); }
+    .filter-bar select {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-muted); font-family: inherit;
+      font-size: .85rem; padding: 8px 12px; outline: none; cursor: pointer;
+      transition: border-color var(--transition);
+    }
+    .filter-bar select:focus { border-color: var(--accent); }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center; padding: 48px 24px; color: var(--text-dim);
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-state p { font-size: .9rem; }
+
+    /* ===== TOAST ===== */
+    #toast-container {
+      position: fixed; bottom: 24px; right: 24px;
+      z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: .85rem;
+      display: flex; align-items: center; gap: 10px;
+      animation: toastIn .2s ease;
+      box-shadow: 0 8px 30px rgba(0,0,0,.4);
+      min-width: 240px; max-width: 360px;
+    }
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error   { border-left: 3px solid var(--red); }
+    .toast.info    { border-left: 3px solid var(--accent); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    /* ===== LOADER ===== */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-row td { text-align: center; padding: 32px; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      #sidebar { transform: translateX(-100%); }
+      #main { margin-left: 0; padding: 16px; }
+      #topbar { left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">🎙️</div>
+    <div class="brand-name"><span>Vox</span>Agent</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <div class="nav-item active" data-page="dashboard" id="nav-dashboard">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+    <div class="nav-item" data-page="knowledge" id="nav-knowledge">
+      <span class="nav-icon">📚</span> Knowledge Base
+    </div>
+    <div class="nav-item" data-page="callhistory" id="nav-callhistory">
+      <span class="nav-icon">📞</span> Call History
+    </div>
+    <div class="nav-label" style="margin-top:12px">Config</div>
+    <div class="nav-item" id="nav-settings">
+      <span class="nav-icon">⚙️</span> Settings
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="nav-item">
+      <span class="nav-icon">👤</span> Admin
+    </div>
+  </div>
+</aside>
+
+<!-- TOPBAR -->
+<header id="topbar">
+  <div id="page-title">Dashboard Overview</div>
+  <div class="topbar-search">
+    <span>🔍</span>
+    <input id="global-search" type="text" placeholder="Search call logs or contacts…" autocomplete="off" />
+  </div>
+  <div class="avatar">A</div>
+</header>
+
+<!-- MAIN -->
+<main id="main">
+
+  <!-- ===== PAGE: DASHBOARD ===== -->
+  <section class="page active" id="page-dashboard">
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Calls</div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-sub">All time</div>
+        <div class="stat-icon">📞</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Calls Today</div>
+        <div class="stat-value" id="stat-today">—</div>
+        <div class="stat-sub">UTC date</div>
+        <div class="stat-icon">📅</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Duration</div>
+        <div class="stat-value" id="stat-avg">—</div>
+        <div class="stat-sub">seconds</div>
+        <div class="stat-icon">⏱️</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Rooms</div>
+        <div class="stat-value" id="stat-rooms">—</div>
+        <div class="stat-sub">Live now</div>
+        <div class="stat-icon">🟢</div>
+      </div>
+    </div>
+
+    <!-- Calls Per Day Chart -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Calls Per Day</h2>
+        <div class="card-actions">
+          <button class="btn-ghost" onclick="loadDashboard()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="callsChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent Calls Table -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recent Calls</h2>
+        <button class="btn-ghost" onclick="navigateTo('callhistory')">View All →</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Call ID</th>
+              <th>Status</th>
+              <th>Duration</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="recent-calls-tbody">
+            <tr class="loading-row"><td colspan="4"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: KNOWLEDGE BASE ===== -->
+  <section class="page" id="page-knowledge">
+    <div class="card-header" style="margin-bottom:20px">
+      <h1 class="card-title" style="font-size:1.2rem">📚 Knowledge Base</h1>
+      <button class="btn-primary" id="kb-upload-btn" onclick="document.getElementById('kb-file-input').click()">
+        ＋ Upload Document
+      </button>
+    </div>
+    <input type="file" id="kb-file-input" accept=".pdf,.txt,.md" />
+
+    <div class="kb-upload-area" id="kb-drop-zone">
+      <div class="kb-upload-icon">📄</div>
+      <div class="kb-upload-text">
+        <strong>Click to upload</strong> or drag & drop<br/>
+        Supports PDF, TXT, MD
+      </div>
+    </div>
+    <div class="progress-bar-wrap" id="progress-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Uploaded Documents</h2>
+        <button class="btn-ghost" onclick="loadKnowledgeBase()">↻ Refresh</button>
+      </div>
+      <div id="doc-list">
+        <div class="empty-state">
+          <div class="empty-icon"><div class="spinner"></div></div>
+          <p>Loading documents…</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: CALL HISTORY ===== -->
+  <section class="page" id="page-callhistory">
+    <div style="margin-bottom:20px">
+      <h1 class="card-title" style="font-size:1.2rem;margin-bottom:16px">📞 Call History</h1>
+      <div class="filter-bar">
+        <input id="ch-search" type="text" placeholder="🔍 Search by Call ID or status…" oninput="filterCallHistory()" />
+        <select id="ch-status-filter" onchange="filterCallHistory()">
+          <option value="">All Statuses</option>
+          <option value="completed">Completed</option>
+          <option value="canceled">Canceled</option>
+          <option value="failed">Failed</option>
+        </select>
+        <button class="btn-ghost" onclick="loadCallHistory()">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Call ID</th>
+              <th>Status</th>
+              <th>Duration</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="callhistory-tbody">
+            <tr class="loading-row"><td colspan="4"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const API_BASE = 'http://localhost:8000';
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const pageTitles = {
+  dashboard: 'Dashboard Overview',
+  knowledge: 'Knowledge Base',
+  callhistory: 'Call History',
+};
+
+function navigateTo(pageId) {
+  // Update nav items
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === pageId);
+  });
+  // Switch pages
+  document.querySelectorAll('.page').forEach(el => {
+    el.classList.toggle('active', el.id === `page-${pageId}`);
+  });
+  // Update title
+  document.getElementById('page-title').textContent = pageTitles[pageId] || '';
+  // Load data for page
+  if (pageId === 'dashboard') loadDashboard();
+  if (pageId === 'knowledge') loadKnowledgeBase();
+  if (pageId === 'callhistory') loadCallHistory();
+}
+
+document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+  el.addEventListener('click', () => navigateTo(el.dataset.page));
+});
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function showToast(msg, type = 'info', duration = 3500) {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(8px)'; el.style.transition = '.3s'; setTimeout(() => el.remove(), 300); }, duration);
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function fmtDuration(secs) {
+  if (!secs && secs !== 0) return '—';
+  const s = Math.round(Number(secs));
+  if (isNaN(s)) return '—';
+  const m = Math.floor(s / 60), r = s % 60;
+  return m ? `${m}m ${r}s` : `${s}s`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+  } catch { return iso.slice(0, 16).replace('T', ' '); }
+}
+
+function statusBadge(status) {
+  const s = (status || 'unknown').toLowerCase();
+  let cls = 'badge-orange';
+  if (s === 'completed') cls = 'badge-green';
+  else if (s === 'canceled' || s === 'failed') cls = 'badge-red';
+  return `<span class="badge ${cls}">${status || 'unknown'}</span>`;
+}
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${API_BASE}${path}`, opts);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${res.statusText} — ${text}`);
+  }
+  return res.json();
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+let callsChart = null;
+
+async function loadDashboard() {
+  // Fetch stats
+  try {
+    const stats = await apiFetch('/dashboard/stats');
+    document.getElementById('stat-total').textContent = stats.total_calls ?? 0;
+    document.getElementById('stat-today').textContent = stats.calls_today ?? 0;
+    const avg = stats.average_call_duration;
+    document.getElementById('stat-avg').textContent = avg != null ? fmtDuration(avg) : '—';
+  } catch (e) {
+    showToast('Failed to load stats: ' + e.message, 'error');
+    ['stat-total','stat-today','stat-avg'].forEach(id => document.getElementById(id).textContent = '—');
+  }
+
+  // Fetch active rooms
+  try {
+    const rooms = await apiFetch('/rooms');
+    document.getElementById('stat-rooms').textContent = (rooms.active_rooms || []).length;
+  } catch { document.getElementById('stat-rooms').textContent = '0'; }
+
+  // Fetch recent calls for table + chart
+  try {
+    const calls = await apiFetch('/dashboard/calls');
+    renderRecentCallsTable(calls.slice(0, 8));
+    renderCallsChart(calls);
+  } catch (e) {
+    document.getElementById('recent-calls-tbody').innerHTML =
+      '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">Failed to load calls</td></tr>';
+    showToast('Failed to load recent calls: ' + e.message, 'error');
+  }
+}
+
+function renderRecentCallsTable(calls) {
+  const tbody = document.getElementById('recent-calls-tbody');
+  if (!calls || !calls.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-dim)">No calls found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = calls.map(c => `
+    <tr>
+      <td>${c.call_id || '—'}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td>${fmtDuration(c.duration)}</td>
+      <td>${fmtDate(c.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderCallsChart(calls) {
+  // Aggregate by date
+  const counts = {};
+  (calls || []).forEach(c => {
+    const d = (c.created_at || '').slice(0, 10);
+    if (d) counts[d] = (counts[d] || 0) + 1;
+  });
+  const sorted = Object.keys(counts).sort();
+  const labels = sorted.map(d => {
+    const dt = new Date(d + 'T00:00:00Z');
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  });
+  const data = sorted.map(d => counts[d]);
+
+  const ctx = document.getElementById('callsChart').getContext('2d');
+  if (callsChart) callsChart.destroy();
+  
+  const grad = ctx.createLinearGradient(0, 0, 0, 220);
+  grad.addColorStop(0, 'rgba(61,110,255,0.5)');
+  grad.addColorStop(1, 'rgba(61,110,255,0.02)');
+
+  callsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels.length ? labels : ['No Data'],
+      datasets: [{
+        label: 'Calls',
+        data: data.length ? data : [0],
+        backgroundColor: grad,
+        borderColor: 'rgba(95,136,255,0.9)',
+        borderWidth: 1.5,
+        borderRadius: 5,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} calls` } } },
+      scales: {
+        x: { grid: { color: 'rgba(37,42,56,.5)', drawBorder: false }, ticks: { color: '#8891aa', font: { size: 11 } } },
+        y: { grid: { color: 'rgba(37,42,56,.5)', drawBorder: false }, ticks: { color: '#8891aa', stepSize: 1, font: { size: 11 } }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+/* ============================================================
+   KNOWLEDGE BASE
+   ============================================================ */
+let _kbDocs = [];
+
+async function loadKnowledgeBase() {
+  const list = document.getElementById('doc-list');
+  list.innerHTML = '<div class="empty-state"><div class="empty-icon"><div class="spinner"></div></div><p>Loading…</p></div>';
+  try {
+    _kbDocs = await apiFetch('/knowledge/list');
+    renderDocList(_kbDocs);
+  } catch (e) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load: ${e.message}</p></div>`;
+    showToast('Knowledge base load failed: ' + e.message, 'error');
+  }
+}
+
+function docIcon(filename) {
+  if (!filename) return { cls: 'default', icon: '📄' };
+  const ext = filename.split('.').pop().toLowerCase();
+  if (ext === 'pdf') return { cls: 'pdf', icon: '📕' };
+  if (ext === 'txt') return { cls: 'txt', icon: '📃' };
+  if (ext === 'md')  return { cls: 'md',  icon: '📝' };
+  return { cls: 'default', icon: '📄' };
+}
+
+function renderDocList(docs) {
+  const list = document.getElementById('doc-list');
+  if (!docs || !docs.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No documents uploaded yet. Upload your first document above.</p></div>';
+    return;
+  }
+  list.innerHTML = docs.map(doc => {
+    const { cls, icon } = docIcon(doc.filename);
+    return `
+      <div class="doc-item" id="doc-${doc.doc_id}">
+        <div class="doc-icon ${cls}">${icon}</div>
+        <div class="doc-info">
+          <div class="doc-name">${doc.filename || doc.doc_id}</div>
+          <div class="doc-meta">Uploaded ${fmtDate(doc.uploaded_at)} · ID: ${doc.doc_id.slice(0,8)}…</div>
+        </div>
+        <button class="btn-danger" onclick="deleteDocument('${doc.doc_id}', this)">🗑️ Delete</button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function deleteDocument(docId, btn) {
+  if (!confirm('Delete this document and all its chunks from the knowledge base?')) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    await apiFetch(`/knowledge/${docId}`, { method: 'DELETE' });
+    const el = document.getElementById(`doc-${docId}`);
+    if (el) { el.style.opacity = '0'; el.style.transition = '.3s'; setTimeout(() => el.remove(), 300); }
+    showToast('Document deleted.', 'success');
+    _kbDocs = _kbDocs.filter(d => d.doc_id !== docId);
+    if (!_kbDocs.length) renderDocList([]);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '🗑️ Delete';
+    showToast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+// File upload
+function setupFileUpload() {
+  const input = document.getElementById('kb-file-input');
+  const dropZone = document.getElementById('kb-drop-zone');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressBar = document.getElementById('progress-bar');
+
+  async function uploadFile(file) {
+    const allowed = ['application/pdf', 'text/plain', 'text/markdown'];
+    const extAllowed = ['.pdf', '.txt', '.md'];
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!extAllowed.includes(ext)) {
+      showToast('Only PDF, TXT, MD files are supported.', 'error'); return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    progressWrap.style.display = 'block';
+    progressBar.style.width = '10%';
+
+    // Simulate progress while uploading
+    let fake = 10;
+    const ticker = setInterval(() => {
+      fake = Math.min(fake + 8, 85);
+      progressBar.style.width = fake + '%';
+    }, 200);
+
+    try {
+      const res = await fetch(`${API_BASE}/knowledge/upload`, { method: 'POST', body: formData });
+      clearInterval(ticker);
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`${res.status} — ${t}`);
+      }
+      progressBar.style.width = '100%';
+      showToast(`"${file.name}" uploaded successfully.`, 'success');
+      setTimeout(() => { progressWrap.style.display = 'none'; progressBar.style.width = '0%'; loadKnowledgeBase(); }, 800);
+    } catch (e) {
+      clearInterval(ticker);
+      progressWrap.style.display = 'none'; progressBar.style.width = '0%';
+      showToast('Upload failed: ' + e.message, 'error');
+    }
+    input.value = '';
+  }
+
+  input.addEventListener('change', () => { if (input.files[0]) uploadFile(input.files[0]); });
+  dropZone.addEventListener('click', () => input.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+  });
+}
+
+/* ============================================================
+   CALL HISTORY
+   ============================================================ */
+let _allCalls = [];
+
+async function loadCallHistory() {
+  const tbody = document.getElementById('callhistory-tbody');
+  tbody.innerHTML = '<tr class="loading-row"><td colspan="4"><div class="spinner"></div></td></tr>';
+  try {
+    _allCalls = await apiFetch('/dashboard/calls');
+    renderCallHistoryTable(_allCalls);
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-dim)">Failed: ${e.message}</td></tr>`;
+    showToast('Call history load failed: ' + e.message, 'error');
+  }
+}
+
+function filterCallHistory() {
+  const query = document.getElementById('ch-search').value.toLowerCase();
+  const status = document.getElementById('ch-status-filter').value.toLowerCase();
+  const filtered = _allCalls.filter(c => {
+    const matchQ = !query || (c.call_id || '').toLowerCase().includes(query) || (c.status || '').toLowerCase().includes(query);
+    const matchS = !status || (c.status || '').toLowerCase() === status;
+    return matchQ && matchS;
+  });
+  renderCallHistoryTable(filtered);
+}
+
+function renderCallHistoryTable(calls) {
+  const tbody = document.getElementById('callhistory-tbody');
+  if (!calls || !calls.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-dim)">No calls match the filter.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = calls.map(c => `
+    <tr>
+      <td>${c.call_id || '—'}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td>${fmtDuration(c.duration)}</td>
+      <td>${fmtDate(c.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+/* ============================================================
+   GLOBAL SEARCH
+   ============================================================ */
+document.getElementById('global-search').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) return;
+    navigateTo('callhistory');
+    setTimeout(() => {
+      document.getElementById('ch-search').value = q;
+      filterCallHistory();
+    }, 50);
+  }
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+setupFileUpload();
+loadDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nina Voice Client | VoxAgent</title>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --primary: #3b82f6;
+            --text: #f1f5f9;
+            --subtext: #94a3b8;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .client-card {
+            background: var(--card);
+            padding: 2.5rem;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nina-avatar {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: 0 0 30px rgba(59,130,246,0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 30px rgba(59,130,246,0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(59,130,246,0.6); }
+            100% { transform: scale(1); box-shadow: 0 0 30px rgba(59,130,246,0.4); }
+        }
+
+        h1 { margin: 0; font-size: 2rem; font-weight: 700; }
+        p { color: var(--subtext); margin: 0.5rem 0 2rem; }
+
+        .btn-join {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-join:hover { background: #2563eb; transform: translateY(-2px); }
+        .btn-join:disabled { background: #475569; cursor: not-allowed; }
+
+        #status {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--subtext);
+        }
+
+        .active-pulse {
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="client-card">
+        <div class="nina-avatar">N</div>
+        <h1>Talk to Nina</h1>
+        <p>AI Voice Pipeline (Premium bulbul:v3)</p>
+        
+        <button id="joinBtn" class="btn-join">Join Call</button>
+        
+        <div id="status">Ready to connect</div>
+        
+        <div id="audio-container"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let room = null;
+        const audioContainer = document.getElementById('audio-container');
+
+        function attachAudioTrack(track, participantIdentity = 'remote') {
+            if (track.kind !== 'audio') return;
+
+            const trackSid = track.sid || `${participantIdentity}-audio`;
+            if (audioContainer.querySelector(`[data-track-sid="${trackSid}"]`)) {
+                return;
+            }
+
+            const el = track.attach();
+            el.autoplay = true;
+            el.playsInline = true;
+            el.dataset.trackSid = trackSid;
+            audioContainer.appendChild(el);
+
+            const playPromise = el.play?.();
+            if (playPromise) {
+                playPromise.catch((err) => {
+                    console.warn('Audio playback requires user interaction:', err);
+                });
+            }
+
+            console.log(`Attached Nina's audio track from ${participantIdentity}`);
+        }
+
+        document.getElementById('joinBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('joinBtn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            status.innerHTML = 'Fetching token...';
+
+            try {
+                // 1. Get token from our server
+                const res = await fetch(`${API_BASE}/token?room=test-room`);
+                if (!res.ok) {
+                    const body = await res.text();
+                    throw new Error(body || 'Could not fetch token');
+                }
+                const { token } = await res.json();
+                
+                status.innerHTML = 'Connecting to LiveKit...';
+
+                // 2. Connect to LiveKit
+                // In production, use the actual LiveKit URL. For local dev, we assume localhost:7880
+                // We'll use the browser's current location to infer the WS protocol if possible, 
+                // but for now we hardcode for local testing.
+                const url = 'ws://localhost:7880'; 
+                
+                room = new LiveKit.Room();
+
+                room.on(LiveKit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                    attachAudioTrack(track, participant?.identity || 'remote');
+                });
+
+                room.on(LiveKit.RoomEvent.TrackUnsubscribed, (track) => {
+                    const elements = track.detach();
+                    elements.forEach((el) => el.remove());
+                });
+
+                await room.connect(url, token);
+                
+                status.innerHTML = '<span class="active-pulse"></span>Connected to Nina';
+                btn.innerHTML = 'In Call';
+
+                // 3. Enable Microphone
+                await room.localParticipant.setMicrophoneEnabled(true);
+                console.log('Microphone enabled');
+
+                // Attach any tracks that were already subscribed during connect.
+                room.remoteParticipants.forEach((participant) => {
+                    participant.trackPublications.forEach((publication) => {
+                        if (publication.track) {
+                            attachAudioTrack(publication.track, participant.identity);
+                        }
+                    });
+                });
+
+                // Also trigger the agent to join if it's not already there
+                fetch(`${API_BASE}/join-room`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ room: 'test-room' })
+                });
+
+            } catch (err) {
+                console.error(err);
+                status.innerHTML = 'Error: ' + err.message;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
